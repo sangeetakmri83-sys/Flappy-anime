@@ -1,0 +1,647 @@
+<meta name='viewport' content='width=device-width, initial-scale=1'/><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Flappy Goku to AOT - The Rumbling</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #111; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; touch-action: none; color: white; }
+        canvas { display: none; box-shadow: 0 0 40px rgba(255, 215, 0, 0.4); border-radius: 10px; z-index: 5; position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; }
+        
+        .screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; background: rgba(0, 0, 0, 0.85); z-index: 30; text-align: center; }
+        h1 { font-size: 40px; color: #FFD700; text-shadow: 0 0 20px #FF8C00; margin-bottom: 10px; }
+        .btn { background: linear-gradient(45deg, #2ECC71, #27AE60); color: white; border: 3px solid white; border-radius: 50px; padding: 15px 40px; font-size: 20px; font-weight: bold; cursor: pointer; margin-top: 20px; box-shadow: 0 0 15px #2ECC71; transition: 0.1s; pointer-events: auto; }
+        .btn:active { transform: scale(0.95); }
+        
+        #loginScreen input { padding: 15px; font-size: 18px; border-radius: 10px; border: 2px solid #FFD700; background: #222; color: white; text-align: center; width: 80%; max-width: 300px; margin-top: 20px; outline: none; pointer-events: auto; }
+        #errorMsg { color: #ff4d4d; margin-top: 10px; font-weight: bold; min-height: 20px; }
+
+        #lobbyScreen { display: none; }
+        .leaderboard { background: rgba(255, 255, 255, 0.1); border-radius: 15px; padding: 20px; width: 85%; max-width: 350px; margin-top: 20px; border: 1px solid #FFD700; }
+        .leaderboard h2 { margin: 0 0 15px 0; color: #00f2fe; }
+        .lb-row { display: flex; justify-content: space-between; font-size: 18px; margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 5px; }
+
+        #ui { position: absolute; top: 15px; width: 100%; text-align: center; font-size: 32px; font-weight: 900; text-shadow: 2px 2px 5px rgba(0,0,0,0.7); pointer-events: none; z-index: 10; display: none; }
+        
+        #gokuTimerContainer { position: absolute; top: 60px; left: 50%; transform: translateX(-50%); width: 200px; height: 15px; background: rgba(0,0,0,0.5); border: 2px solid #FFD700; border-radius: 10px; display: none; z-index: 10; overflow: hidden; }
+        #gokuTimerFill { width: 100%; height: 100%; background: linear-gradient(90deg, #FF8C00, #FFD700); transition: width 0.1s linear; }
+
+        #adminPanel { position: absolute; top: 15px; right: 15px; background: rgba(20, 0, 40, 0.9); border: 2px solid #00f2fe; border-radius: 10px; padding: 15px; z-index: 50; display: none; color: white; text-align: left; box-shadow: 0 0 15px rgba(0, 242, 254, 0.5); pointer-events: auto; font-size: 14px; user-select: none; }
+        #adminHeader { margin: 0 0 10px 0; color: #FFD700; font-size: 16px; text-transform: uppercase; border-bottom: 1px solid #555; padding-bottom: 5px; cursor: grab; display: flex; justify-content: space-between; align-items: center; }
+        #adminHeader:active { cursor: grabbing; }
+        .admin-control { margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+        .admin-btn { background: #e63946; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-weight: bold; width: 100%; }
+        .admin-btn:active { transform: scale(0.95); }
+
+        #storyOverlay { position: absolute; top: 25%; width: 100%; text-align: center; font-size: 28px; color: #fff; font-weight: bold; text-shadow: 0 0 15px #ff0000, 0 0 5px #000; display: none; z-index: 25; pointer-events: none; padding: 0 20px; box-sizing: border-box; }
+
+        #portalScreen { display: none; background: rgba(20, 0, 40, 0.95); z-index: 40; }
+        #portalScreen h1 { color: #b33939; text-shadow: 0 0 20px #ff0000; font-size: 35px; }
+        .gender-btn { background: #1d3557; color: white; border: 2px solid #a8dadc; padding: 15px 30px; margin: 10px; font-size: 22px; border-radius: 10px; cursor: pointer; transition: 0.2s; }
+        .gender-btn:hover { background: #457b9d; transform: scale(1.05); }
+
+        #dashBtn { position: absolute; bottom: 30px; right: 20px; background: linear-gradient(45deg, #ff007f, #ff8c00); border: 2px solid white; border-radius: 50%; width: 70px; height: 70px; display: none; justify-content: center; align-items: center; box-shadow: 0 0 20px rgba(255, 0, 127, 0.8); z-index: 20; cursor: pointer; pointer-events: auto; font-size: 30px; }
+        #dashBtn.aot-mode { background: linear-gradient(45deg, #e63946, #d62828); box-shadow: 0 0 20px rgba(230, 57, 70, 0.8); }
+        #dashBtn:active { transform: scale(0.9); }
+        #dashBtn.cooldown { background: gray; box-shadow: none; border-color: #555; opacity: 0.6; }
+    </style>
+</head>
+<body>
+
+<div id="loginScreen" class="screen">
+    <h1>FLAPPY GOKU</h1>
+    <p>Madam Ji, register your device!</p>
+    <input type="text" id="usernameInput" placeholder="Enter Username" maxlength="12">
+    <div id="errorMsg"></div>
+    <button class="btn" id="joinBtn">JOIN GAME</button>
+</div>
+
+<div id="lobbyScreen" class="screen">
+    <h1>WELCOME BACK</h1>
+    <p>Player: <span id="currentUserDisplay" style="color:#00f2fe; font-weight:bold;"></span></p>
+    <div class="leaderboard">
+        <h2>🏆 LEADERBOARD 🏆</h2>
+        <div id="leaderboardList"></div>
+    </div>
+    <button class="btn" id="startBtn">PLAY NOW</button>
+</div>
+
+<div id="portalScreen" class="screen">
+    <h1>DIMENSIONAL RIFT CROSSED</h1>
+    <p style="font-size: 20px; margin-bottom: 30px;">Choose your Scout Regiment Form:</p>
+    <div>
+        <button class="gender-btn" id="btnBoy">BOY (Eren / Levi)</button>
+        <button class="gender-btn" id="btnGirl">GIRL (Mikasa / Annie)</button>
+    </div>
+</div>
+
+<div id="ui">Score: <span id="score">0</span></div>
+<div id="gokuTimerContainer"><div id="gokuTimerFill"></div></div>
+
+<div id="adminPanel">
+    <h3 id="adminHeader">Admin Panel <span>⇱</span></h3>
+    <div class="admin-control">
+        <label for="godModeCheck">God Mode (Ghost):</label>
+        <input type="checkbox" id="godModeCheck">
+    </div>
+    <div class="admin-control">
+        <label for="speedRange">Game Speed:</label>
+        <input type="range" id="speedRange" min="0.5" max="4" step="0.5" value="1" style="width: 80px;">
+    </div>
+    <div class="admin-control">
+        <button id="addScoreBtn" class="admin-btn" style="background:#f39c12; color:black;">+10 SCORE</button>
+    </div>
+    <div class="admin-control">
+        <button id="adminPauseBtn" class="admin-btn">PAUSE GAME</button>
+    </div>
+</div>
+
+<div id="storyOverlay"></div>
+<button id="dashBtn">
+    <svg viewBox="0 0 50 50" width="40" height="40" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none">
+        <circle cx="35" cy="15" r="5" fill="white"/>
+        <line x1="32" y1="19" x2="20" y2="30"/>
+        <line x1="28" y1="23" x2="10" y2="20"/>
+        <line x1="28" y1="23" x2="15" y2="15"/>
+        <line x1="20" y1="30" x2="10" y2="40"/>
+        <line x1="20" y1="30" x2="28" y2="45"/>
+    </svg>
+</button>
+
+<canvas id="gameCanvas"></canvas>
+
+<script>
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    let audioCtx;
+
+    function initAudio() {
+        if (!audioCtx) audioCtx = new AudioContext();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+    }
+
+    function playSound(type) {
+        if (!audioCtx) return;
+        let osc = audioCtx.createOscillator();
+        let gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        let now = audioCtx.currentTime;
+        
+        if (type === 'flap') {
+            osc.type = 'sine'; osc.frequency.setValueAtTime(350, now); osc.frequency.exponentialRampToValueAtTime(600, now + 0.1);
+            gain.gain.setValueAtTime(0.15, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+            osc.start(now); osc.stop(now + 0.1);
+        } else if (type === 'spear') { 
+            osc.type = 'sawtooth'; osc.frequency.setValueAtTime(1000, now); osc.frequency.exponentialRampToValueAtTime(100, now + 0.2);
+            gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+            osc.start(now); osc.stop(now + 0.2);
+        } else if (type === 'score') {
+            osc.type = 'square'; osc.frequency.setValueAtTime(800, now); osc.frequency.setValueAtTime(1200, now + 0.05);
+            gain.gain.setValueAtTime(0.15, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+            osc.start(now); osc.stop(now + 0.1);
+        } else if (type === 'boom') {
+            osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, now); osc.frequency.exponentialRampToValueAtTime(20, now + 0.4);
+            gain.gain.setValueAtTime(0.5, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.4);
+            osc.start(now); osc.stop(now + 0.4);
+        }
+    }
+
+    const loginScreen = document.getElementById("loginScreen");
+    const lobbyScreen = document.getElementById("lobbyScreen");
+    const portalScreen = document.getElementById("portalScreen");
+    const canvas = document.getElementById("gameCanvas");
+    const ui = document.getElementById("ui");
+    const storyOverlay = document.getElementById("storyOverlay");
+    const dashBtn = document.getElementById("dashBtn");
+    const adminPanel = document.getElementById("adminPanel");
+    const adminHeader = document.getElementById("adminHeader");
+    const gokuTimerContainer = document.getElementById("gokuTimerContainer");
+    const gokuTimerFill = document.getElementById("gokuTimerFill");
+    const ctx = canvas.getContext("2d");
+    const scoreText = document.getElementById("score");
+
+    function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+    window.addEventListener('resize', resize); resize();
+
+    // DRAGGABLE PANEL LOGIC
+    let isDragging = false; let offsetX, offsetY;
+    function startDrag(e) {
+        isDragging = true;
+        let clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+        let clientY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+        let rect = adminPanel.getBoundingClientRect();
+        offsetX = clientX - rect.left; offsetY = clientY - rect.top;
+    }
+    function moveDrag(e) {
+        if (!isDragging) return;
+        let clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+        let clientY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+        adminPanel.style.left = (clientX - offsetX) + 'px';
+        adminPanel.style.top = (clientY - offsetY) + 'px';
+        adminPanel.style.right = 'auto'; 
+    }
+    function endDrag() { isDragging = false; }
+    adminHeader.addEventListener('mousedown', startDrag); adminHeader.addEventListener('touchstart', startDrag, {passive: false});
+    window.addEventListener('mousemove', moveDrag); window.addEventListener('touchmove', moveDrag, {passive: false});
+    window.addEventListener('mouseup', endDrag); window.addEventListener('touchend', endDrag);
+
+    // Game Variables
+    const baseGravity = 0.35; const lift = -7.5; 
+    let score = 0; let gameRunning = false; let isPaused = false;
+    let particles = []; let spears = []; let frames = 0;
+    
+    // Admin Controls
+    let godMode = false; let speedMult = 1; let customPaused = false;
+    document.getElementById("godModeCheck").addEventListener("change", (e) => { godMode = e.target.checked; });
+    document.getElementById("speedRange").addEventListener("input", (e) => { speedMult = parseFloat(e.target.value); });
+    document.getElementById("adminPauseBtn").addEventListener("click", () => {
+        customPaused = !customPaused;
+        document.getElementById("adminPauseBtn").innerText = customPaused ? "RESUME GAME" : "PAUSE GAME";
+    });
+    document.getElementById("addScoreBtn").addEventListener("click", () => {
+        score += 10; scoreText.innerText = score; checkAOTStory();
+    });
+
+    let isGoku = false; let gokuTimer = 0; const maxGokuTime = 250;
+    let isDashing = false; let dashTimer = 0; let dashCooldown = 0;
+    
+    // AOT Variables
+    let isAOTMode = false; let portalSpawned = false; let aotCharacter = ""; let lastStoryScore = 0;
+    let isGroundRunning = false; 
+
+    let chocolates = []; let pipes = []; let pipeWidth = 75; let groundX = 0; // Increased pipeWidth for Titan bodies
+    const clouds = [ { x: 50, y: 100, speed: 0.2, size: 30 }, { x: 250, y: 180, speed: 0.3, size: 40 }, { x: 450, y: 80, speed: 0.15, size: 25 } ];
+
+    let usersData = {}; let currentUser = "";
+    try { usersData = JSON.parse(localStorage.getItem('crossoverDB')) || {}; currentUser = localStorage.getItem('crossoverUser') || ""; } catch (e) {}
+
+    document.getElementById("joinBtn").addEventListener("click", () => {
+        let name = document.getElementById("usernameInput").value.trim().toUpperCase();
+        if (name === "") return;
+        usersData[name] = usersData[name] || 0; currentUser = name;
+        try { localStorage.setItem('crossoverDB', JSON.stringify(usersData)); localStorage.setItem('crossoverUser', currentUser); } catch(e){}
+        loginScreen.style.display = "none"; lobbyScreen.style.display = "flex"; document.getElementById("currentUserDisplay").innerText = currentUser;
+    });
+
+    if (currentUser !== "") { loginScreen.style.display = "none"; lobbyScreen.style.display = "flex"; document.getElementById("currentUserDisplay").innerText = currentUser; }
+
+    document.getElementById("startBtn").addEventListener("click", () => {
+        initAudio(); lobbyScreen.style.display = "none"; canvas.style.display = "block"; ui.style.display = "block"; dashBtn.style.display = "flex"; adminPanel.style.display = "block";
+        resetGame(); gameRunning = true; bird.flap();
+    });
+
+    document.getElementById("btnBoy").addEventListener("click", () => enterAOT('boy'));
+    document.getElementById("btnGirl").addEventListener("click", () => enterAOT('girl'));
+
+    function enterAOT(gender) {
+        aotCharacter = gender; isAOTMode = true; isPaused = false; customPaused = false;
+        portalScreen.style.display = "none"; pipes = []; chocolates = []; particles = []; spears = [];
+        bird.y = canvas.height / 2; bird.velocity = 0; pipeWidth = 90; // Thicker Titans
+        dashBtn.classList.add("aot-mode"); canvas.style.boxShadow = "0 0 40px rgba(255, 0, 0, 0.4)"; 
+        dashBtn.innerHTML = "🚀"; // Thunder Spear Icon
+        showStory("YEAR 845: FALL OF SHIGANSHINA", 4000); bird.flap();
+    }
+
+    function showStory(text, duration = 3000) { storyOverlay.innerText = text; storyOverlay.style.display = "block"; setTimeout(() => { storyOverlay.style.display = "none"; }, duration); }
+
+    function drawRumbling() {
+        if (score >= 110) {
+            let sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            sky.addColorStop(0, '#2c0000'); sky.addColorStop(0.7, '#8e1600'); sky.addColorStop(1, '#ff4500');
+            ctx.fillStyle = sky; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.fillStyle = 'rgba(100, 10, 10, 0.8)';
+            for(let i=0; i<canvas.width + 200; i+= 180) {
+                let titanX = i - ((frames * 0.5) % 180); let titanY = canvas.height - 180;
+                ctx.fillRect(titanX, titanY, 30, 150); ctx.fillRect(titanX + 50, titanY, 30, 150);
+                ctx.fillRect(titanX - 10, titanY - 120, 100, 130);
+                ctx.fillStyle = '#ffcc00'; ctx.fillRect(titanX + 25, titanY - 100, 10, 5); ctx.fillRect(titanX + 45, titanY - 100, 10, 5);
+                ctx.fillStyle = 'rgba(100, 10, 10, 0.8)';
+            }
+            if (frames % 5 === 0) particles.push(new Particle(Math.random()*canvas.width, 0, '#ff4500', 1));
+        }
+    }
+
+    function drawBackground() {
+        if (isAOTMode && score >= 110) { drawRumbling(); } else {
+            let sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            if (isAOTMode) { sky.addColorStop(0, '#3a0000'); sky.addColorStop(0.5, '#b33939'); sky.addColorStop(1, '#ffb142'); } 
+            else if (isGoku) { sky.addColorStop(0, '#4b1d52'); sky.addColorStop(1, '#ffb88c'); } 
+            else { sky.addColorStop(0, '#1CB5E0'); sky.addColorStop(1, '#ffffff'); }
+            ctx.fillStyle = sky; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.save(); ctx.shadowBlur = 40; ctx.shadowColor = isAOTMode ? '#ff0000' : (isGoku ? '#ff0000' : '#FFD700');
+            ctx.fillStyle = isAOTMode ? '#800000' : (isGoku ? '#FF4500' : '#FFD700');
+            ctx.beginPath(); ctx.arc(canvas.width - 80, 120, 40, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+
+            clouds.forEach(cloud => {
+                if (gameRunning && !isPaused && !customPaused) cloud.x -= (cloud.speed + speedMult);
+                if (cloud.x + cloud.size * 3 < 0) cloud.x = canvas.width + 50;
+                ctx.fillStyle = isAOTMode ? 'rgba(255, 100, 100, 0.4)' : 'rgba(255, 255, 255, 0.8)';
+                ctx.beginPath(); ctx.arc(cloud.x, cloud.y, cloud.size, 0, Math.PI*2);
+                ctx.arc(cloud.x + cloud.size*1.2, cloud.y - cloud.size*0.3, cloud.size*0.9, 0, Math.PI*2); ctx.fill();
+            });
+        }
+
+        if (isAOTMode && score < 110) {
+            ctx.fillStyle = '#1e1111';
+            for(let i = 0; i < canvas.width; i+=150) {
+                let wx = i + (groundX * 0.2) % 150;
+                ctx.fillRect(wx, canvas.height - 150, 140, 150);
+                ctx.strokeStyle = '#000'; ctx.lineWidth = 1; ctx.strokeRect(wx, canvas.height - 150, 140, 150);
+            }
+        }
+
+        ctx.fillStyle = isAOTMode ? (score >= 110 ? '#110000' : '#2c0d0d') : '#111'; ctx.fillRect(0, canvas.height - 40, canvas.width, 40); 
+        ctx.fillStyle = isAOTMode ? (score>=110 ? '#330000' : '#511818') : (isGoku ? '#1e8449' : '#2ECC71'); ctx.beginPath();
+        let envSpeed = (isAOTMode ? (isGroundRunning ? 8 : 4) : 3) * speedMult;
+        if (gameRunning && !isPaused && !customPaused) groundX -= envSpeed; if (groundX <= -40) groundX = 0;
+        for(let i = 0; i <= canvas.width + 40; i += 40) {
+            ctx.moveTo(i + groundX, canvas.height - 40); ctx.lineTo(i + 20 + groundX, canvas.height - 55); ctx.lineTo(i + 40 + groundX, canvas.height - 40);
+        }
+        ctx.fill();
+    }
+
+    const bird = {
+        x: 80, y: 300, velocity: 0, angle: 0,
+        draw() {
+            ctx.save(); ctx.translate(this.x, this.y);
+            
+            if (isAOTMode) {
+                if (isGroundRunning) {
+                    this.angle = 0; ctx.rotate(this.angle);
+                    let legSwing = Math.sin(frames * 0.5) * 15;
+                    ctx.strokeStyle = "#1e1111"; ctx.lineWidth = 4;
+                    ctx.beginPath(); ctx.moveTo(0, 10); ctx.lineTo(legSwing, 25); ctx.stroke(); 
+                    ctx.beginPath(); ctx.moveTo(0, 10); ctx.lineTo(-legSwing, 25); ctx.stroke(); 
+                    
+                    ctx.fillStyle = "#1e8449"; ctx.beginPath(); ctx.moveTo(-15, -10); ctx.lineTo(15, -5); ctx.lineTo(-5, 15); ctx.fill();
+                    ctx.strokeStyle = "#bdc3c7"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-25, -5); ctx.stroke(); 
+                } else {
+                    this.angle = Math.min(Math.PI/4, Math.max(-Math.PI/4, this.velocity * 0.1)); ctx.rotate(this.angle);
+                    ctx.fillStyle = "#1e8449"; ctx.beginPath(); ctx.moveTo(-15, -10); ctx.lineTo(10, -10); ctx.lineTo(-5, 20); ctx.fill();
+                    ctx.strokeStyle = "#bdc3c7"; ctx.lineWidth = 2;
+                    ctx.beginPath(); ctx.moveTo(5, -5); ctx.lineTo(25, -15); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(-5, -5); ctx.lineTo(20, -20); ctx.stroke();
+                }
+
+                ctx.fillStyle = "#7f8c8d"; ctx.fillRect(-10, 0, 8, 12); 
+                ctx.fillStyle = "#f5cba7"; ctx.beginPath(); ctx.arc(0, -15, 8, 0, Math.PI*2); ctx.fill();
+                
+                if (aotCharacter === 'girl') {
+                    ctx.fillStyle = "#111"; ctx.beginPath(); ctx.arc(0, -17, 9, Math.PI, 0); ctx.fill();
+                    ctx.fillRect(-8, -17, 4, 10); 
+                    ctx.fillStyle = "#e74c3c"; ctx.fillRect(-6, -10, 12, 4); 
+                } else { 
+                    ctx.fillStyle = "#3e2723"; ctx.beginPath(); ctx.arc(0, -17, 9, Math.PI, 0); ctx.fill(); 
+                    ctx.beginPath(); ctx.moveTo(-9, -17); ctx.lineTo(-12, -8); ctx.lineTo(-5, -12); ctx.fill(); 
+                }
+
+            } else {
+                if (isGoku) {
+                    let beamGrad = ctx.createLinearGradient(0, 0, -canvas.width, 0);
+                    beamGrad.addColorStop(0, 'rgba(255, 215, 0, 0.9)'); beamGrad.addColorStop(1, 'rgba(255, 215, 0, 0)');
+                    ctx.fillStyle = beamGrad; ctx.beginPath(); ctx.moveTo(0, -20); ctx.lineTo(-canvas.width, -80); ctx.lineTo(-canvas.width, 80); ctx.lineTo(0, 20); ctx.fill();
+                    ctx.fillStyle = "rgba(0, 242, 254, 0.7)"; ctx.shadowBlur = 20; ctx.shadowColor = '#00f2fe';
+                    ctx.beginPath(); ctx.moveTo(-10, 0); ctx.lineTo(-120 - Math.random()*30, -15); ctx.lineTo(-120 - Math.random()*30, 15); ctx.fill();
+                    ctx.fillStyle = "#FFDBAC"; ctx.beginPath(); ctx.arc(-15, -2, 7, 0, Math.PI*2); ctx.fill(); 
+                    ctx.fillStyle = '#FFD700'; ctx.beginPath(); ctx.moveTo(-20, -5); ctx.lineTo(-30, -15); ctx.lineTo(-12, -8); ctx.lineTo(-10, -25); ctx.lineTo(-5, -8); ctx.lineTo(5, -15); ctx.lineTo(0, -2); ctx.fill();
+                } else {
+                    this.angle = Math.min(Math.PI/4, Math.max(-Math.PI/4, this.velocity * 0.1)); ctx.rotate(this.angle);
+                    ctx.fillStyle = "#A0522D"; ctx.beginPath(); ctx.ellipse(0, 0, 22, 16, 0, 0, Math.PI * 2); ctx.fill();
+                    ctx.fillStyle = "#FFA500"; ctx.beginPath(); ctx.moveTo(25, -6); ctx.lineTo(36, -2); ctx.lineTo(25, 2); ctx.fill();
+                }
+            }
+            ctx.restore();
+        },
+        update() {
+            if (!gameRunning || isPaused || customPaused) return;
+
+            if (isGroundRunning) {
+                let groundLevel = canvas.height - 65;
+                this.velocity += baseGravity * speedMult * 1.2; // Smooth jumping gravity
+                this.y += this.velocity;
+                if (this.y >= groundLevel) { this.y = groundLevel; this.velocity = 0; }
+            } else {
+                if (isGoku) { this.velocity = 0; this.y += ((canvas.height/2) - this.y) * 0.1; } 
+                else { this.velocity += baseGravity * speedMult; this.y += this.velocity; }
+                
+                if (this.y > canvas.height - 40 || this.y < 0) { 
+                    if (!godMode && !isGoku) triggerGameOver(); 
+                    else { this.y = Math.max(0, Math.min(this.y, canvas.height - 40)); } 
+                }
+            }
+        },
+        flap() {
+            if (isPaused || customPaused) return;
+            if (isGroundRunning) {
+                if (this.y >= canvas.height - 70) { 
+                    playSound('flap'); this.velocity = -13 * speedMult; // HIGHER JUMP POWER
+                    for(let i=0; i<5; i++) particles.push(new Particle(this.x, this.y+20, '#555')); 
+                }
+            } else if (isAOTMode) {
+                playSound('flap'); this.velocity = -7.5 * speedMult;
+                for(let i=0; i<3; i++) particles.push(new Particle(this.x, this.y, 'rgba(200,200,200,0.5)'));
+            } else {
+                if (!isGoku) {
+                    playSound('flap'); this.velocity = lift * speedMult;
+                    for(let i=0; i<4; i++) particles.push(new Particle(this.x - 10, this.y, 'white'));
+                }
+            }
+        }
+    };
+
+    function shootSpear() {
+        if (!isAOTMode || isPaused || customPaused) return;
+        playSound('spear');
+        spears.push({ x: bird.x + 20, y: bird.y });
+        
+        // Fiery exhaust when firing
+        for(let i=0; i<10; i++) particles.push(new Particle(bird.x, bird.y, '#ff4500', 4));
+
+        dashBtn.classList.add("cooldown");
+        setTimeout(() => dashBtn.classList.remove("cooldown"), 400); // REDUCED COOLDOWN TO 400ms!
+    }
+
+    function createPipe() {
+        if (score >= 79 && !portalSpawned && !isAOTMode) {
+            pipes.push({ isPortal: true, x: canvas.width, top: 0, bottom: 0, y: canvas.height/2, width: 80, height: 160 });
+            portalSpawned = true; playSound('powerup'); return;
+        }
+
+        if (portalSpawned && !isAOTMode) return; 
+
+        if (isGroundRunning) {
+            pipes.push({ isPortal: false, x: canvas.width, top: 0, bottom: Math.random()*100 + 50, passed: false, smashed: false, type: 'ground' });
+        } else {
+            const gap = isAOTMode ? 180 : 140; 
+            const minHeight = 60; const maxHeight = canvas.height - 40 - gap - minHeight; 
+            const height = Math.floor(Math.random() * (maxHeight - minHeight + 1)) + minHeight;
+            pipes.push({ isPortal: false, x: canvas.width, top: height, bottom: canvas.height - 40 - height - gap, passed: false, smashed: false, type: 'air' });
+        }
+        
+        if (!isAOTMode && Math.random() > 0.85) { chocolates.push({ x: canvas.width + 30, y: Math.random()*200 + 100, collected: false }); }
+    }
+
+    function updateGameObjects() {
+        let envSpeed = (isGroundRunning ? 8 : (isAOTMode ? 5 : (isGoku ? 20 : 3))) * speedMult; 
+        
+        // INCREASED DISTANCE BETWEEN TITANS ON GROUND (spawnRate from 60 to 120)
+        let spawnRate = Math.max(10, Math.floor((isGroundRunning ? 120 : 100) / speedMult)); 
+        
+        if (frames % spawnRate === 0) createPipe();
+        
+        // Update Spears
+        spears.forEach((s, i) => {
+            s.x += 18 * speedMult; 
+            particles.push(new Particle(s.x - 10, s.y, '#FF4500', 2)); // Fire trail
+            particles.push(new Particle(s.x - 15, s.y, '#FFD700', 1)); // Spark trail
+            if (s.x > canvas.width) spears.splice(i, 1);
+        });
+
+        pipes.forEach((p, i) => {
+            p.x -= envSpeed;
+            if (p.x + (p.isPortal ? p.width : pipeWidth) < -50) pipes.splice(i, 1);
+
+            // Spear collision
+            spears.forEach((s, sIndex) => {
+                if (!p.isPortal && !p.smashed && s.x > p.x && s.x < p.x + pipeWidth) {
+                    if ((p.type === 'air' && (s.y < p.top || s.y > canvas.height - 40 - p.bottom)) || 
+                        (p.type === 'ground' && s.y > canvas.height - 40 - p.bottom - 60)) { // 60 is head height
+                        playSound('boom'); p.smashed = true; spears.splice(sIndex, 1);
+                        score += 3; scoreText.innerText = score;
+                        // Massive fiery explosion
+                        for(let k=0; k<25; k++) particles.push(new Particle(p.x + pipeWidth/2, s.y, '#ff4500', 8)); 
+                        for(let k=0; k<15; k++) particles.push(new Particle(p.x + pipeWidth/2, s.y, '#FFD700', 5)); 
+                    }
+                }
+            });
+
+            // Player Collision
+            if (p.isPortal && !isAOTMode) {
+                if (bird.x + 15 > p.x && bird.x - 15 < p.x + p.width) {
+                    if (bird.y > p.y - p.height/2 && bird.y < p.y + p.height/2) {
+                        isPaused = true; portalScreen.style.display = "flex";
+                    }
+                }
+            } else if (!p.isPortal && !p.smashed && bird.x + 15 > p.x && bird.x - 15 < p.x + pipeWidth) {
+                let hitTop = p.type === 'air' && bird.y - 10 < p.top;
+                let hitBottom = false;
+                
+                if (p.type === 'ground') {
+                    // Collision box for standing titan (including head)
+                    hitBottom = bird.y + 15 > canvas.height - 40 - p.bottom - 40; // 40 is head buffer
+                } else {
+                    hitBottom = bird.y + 15 > canvas.height - 40 - p.bottom;
+                }
+                
+                if (hitTop || hitBottom) {
+                    if (godMode) { /* Ghost mode */ } 
+                    else if (isGoku) {
+                        playSound('boom'); p.smashed = true; score += 5; scoreText.innerText = score;
+                        for(let k=0; k<15; k++) particles.push(new Particle(p.x + pipeWidth/2, bird.y, '#8B5A2B', 8));
+                    } else { triggerGameOver(); }
+                }
+            }
+
+            if (!p.passed && !p.smashed && p.x + pipeWidth < bird.x) { playSound('score'); score++; p.passed = true; scoreText.innerText = score; checkAOTStory(); }
+        });
+
+        if (!isAOTMode) {
+            chocolates.forEach((c, i) => {
+                if (c.collected) return; c.x -= envSpeed;
+                let hoverY = c.y + Math.sin(frames * 0.2) * 15; 
+                ctx.save(); ctx.translate(c.x, hoverY);
+                ctx.fillStyle = '#3E0E4E'; ctx.fillRect(-25, -12, 50, 24); 
+                ctx.fillStyle = '#D4AF37'; ctx.font = 'bold 14px Arial'; ctx.fillText('SILK', -15, 5); ctx.restore();
+
+                if (Math.hypot(bird.x - c.x, bird.y - hoverY) < 40) { 
+                    c.collected = true; isGoku = true; gokuTimer = maxGokuTime; playSound('powerup');
+                    gokuTimerContainer.style.display = "block";
+                    for(let i=0; i<30; i++) particles.push(new Particle(bird.x, bird.y, '#FFD700', 10)); 
+                }
+                if (c.x < -50) chocolates.splice(i, 1);
+            });
+        }
+    }
+
+    function checkAOTStory() {
+        if (!isAOTMode) return;
+        if (score >= 85 && lastStoryScore < 85) { showStory("THE COLOSSAL TITAN APPEARS!"); lastStoryScore = 85; }
+        if (score >= 95 && lastStoryScore < 95) { showStory("LEVI SQUAD, MOVE OUT!"); lastStoryScore = 95; }
+        if (score >= 110 && lastStoryScore < 110 && !isGroundRunning) { 
+            showStory("THE RUMBLING HAS BEGUN... RUN!"); 
+            lastStoryScore = 110; 
+            isGroundRunning = true; 
+            pipes = []; 
+        }
+    }
+
+    function drawGameObjects() {
+        spears.forEach(s => {
+            ctx.fillStyle = "#FFD700"; ctx.shadowBlur = 10; ctx.shadowColor = "white";
+            ctx.fillRect(s.x - 10, s.y - 2, 20, 4); ctx.shadowBlur = 0;
+        });
+
+        pipes.forEach(p => {
+            if (p.isPortal) {
+                ctx.save(); ctx.translate(p.x + p.width/2, p.y);
+                ctx.shadowBlur = 30 + Math.sin(frames*0.1)*10; ctx.shadowColor = '#9b59b6';
+                ctx.fillStyle = "rgba(155, 89, 182, 0.8)";
+                ctx.beginPath(); ctx.ellipse(0, 0, p.width/2, p.height/2, 0, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = "#fff"; ctx.font = "20px Arial"; ctx.fillText("ENTER", -30, 5);
+                ctx.restore(); return;
+            }
+
+            if (p.smashed) return; 
+
+            if (isAOTMode) {
+                let bottomY = canvas.height - 40 - p.bottom;
+                
+                if (p.type === 'air') {
+                    ctx.fillStyle = '#e67e22'; ctx.fillRect(p.x, 0, pipeWidth, p.top); 
+                    ctx.fillStyle = '#c0392b'; ctx.fillRect(p.x + 10, 0, pipeWidth - 20, p.top); 
+                }
+                
+                // Standing Scary Titans
+                ctx.fillStyle = '#e67e22'; ctx.fillRect(p.x, bottomY, pipeWidth, p.bottom); 
+                ctx.fillStyle = '#c0392b'; ctx.fillRect(p.x + 10, bottomY, pipeWidth - 20, p.bottom);
+                
+                // Terrifying titan head shape
+                ctx.fillStyle = '#f5b041'; ctx.beginPath(); ctx.arc(p.x + pipeWidth/2, bottomY + 20, pipeWidth/2, 0, Math.PI*2); ctx.fill(); 
+                
+                // Scary Glowing Red Angry Eyes
+                ctx.fillStyle = "#ff0000"; ctx.shadowBlur = 10; ctx.shadowColor = "red";
+                ctx.beginPath(); ctx.moveTo(p.x + 20, bottomY + 10); ctx.lineTo(p.x + 35, bottomY + 15); ctx.lineTo(p.x + 20, bottomY + 18); ctx.fill();
+                ctx.beginPath(); ctx.moveTo(p.x + pipeWidth - 20, bottomY + 10); ctx.lineTo(p.x + pipeWidth - 35, bottomY + 15); ctx.lineTo(p.x + pipeWidth - 20, bottomY + 18); ctx.fill();
+                ctx.shadowBlur = 0;
+
+                // Scary jagged mouth with teeth
+                ctx.fillStyle = "#2c0000"; ctx.fillRect(p.x + 20, bottomY + 25, pipeWidth - 40, 15);
+                ctx.fillStyle = "#ffffff"; 
+                for(let t=0; t<pipeWidth-40; t+=8) {
+                    ctx.beginPath(); ctx.moveTo(p.x + 20 + t, bottomY + 25); ctx.lineTo(p.x + 24 + t, bottomY + 32); ctx.lineTo(p.x + 28 + t, bottomY + 25); ctx.fill(); // Top teeth
+                    ctx.beginPath(); ctx.moveTo(p.x + 20 + t, bottomY + 40); ctx.lineTo(p.x + 24 + t, bottomY + 33); ctx.lineTo(p.x + 28 + t, bottomY + 40); ctx.fill(); // Bottom teeth
+                }
+                
+            } else {
+                let grad = ctx.createLinearGradient(p.x, 0, p.x + pipeWidth, 0);
+                grad.addColorStop(0, '#4A2E1B'); grad.addColorStop(0.5, '#8B5A2B'); grad.addColorStop(1, '#4A2E1B');
+                ctx.fillStyle = grad; ctx.fillRect(p.x, 0, pipeWidth, p.top);
+                ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(p.x - 4, p.top - 20, pipeWidth + 8, 20); 
+                let bottomY = canvas.height - 40 - p.bottom;
+                ctx.fillRect(p.x, bottomY, pipeWidth, p.bottom);
+                ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(p.x - 4, bottomY, pipeWidth + 8, 20);
+            }
+        });
+    }
+
+    class Particle {
+        constructor(x, y, color, maxSpeed = 3) {
+            this.x = x; this.y = y; this.color = color; this.size = Math.random() * 5 + 3;
+            this.speedX = (Math.random() - 0.5) * maxSpeed * 2; this.speedY = (Math.random() - 0.5) * maxSpeed * 2; this.alpha = 1;
+        }
+        update() { this.x += this.speedX * speedMult; this.y += this.speedY * speedMult; this.alpha -= 0.05 * speedMult; }
+        draw() { ctx.globalAlpha = Math.max(0, this.alpha); ctx.fillStyle = this.color; ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI*2); ctx.fill(); ctx.globalAlpha = 1; }
+    }
+
+    function triggerGameOver() {
+        if (!gameRunning) return; 
+        playSound('die'); gameRunning = false; 
+        if (currentUser && score > usersData[currentUser]) { usersData[currentUser] = score; try { localStorage.setItem('crossoverDB', JSON.stringify(usersData)); } catch(e){} }
+        
+        setTimeout(() => { 
+            canvas.style.display = "none"; ui.style.display = "none"; dashBtn.style.display = "none"; storyOverlay.style.display = "none"; adminPanel.style.display = "none"; gokuTimerContainer.style.display = "none";
+            let sorted = Object.keys(usersData).map(n => ({ n: n, s: usersData[n] })).sort((a,b) => b.s - a.s).slice(0,5);
+            document.getElementById("leaderboardList").innerHTML = sorted.map((u,i) => `<div class="lb-row"><span>${i===0?'🥇':(i===1?'🥈':'🥉')} ${u.n}</span><span>${u.s}</span></div>`).join('');
+            lobbyScreen.style.display = "flex"; 
+        }, 1500); 
+    }
+
+    function resetGame() {
+        bird.y = 300; bird.velocity = 0; pipes = []; chocolates = []; particles = []; spears = [];
+        score = 0; scoreText.innerText = score; frames = 0; lastStoryScore = 0;
+        isGoku = false; isDashing = false; dashCooldown = 0; gokuTimer = 0;
+        isAOTMode = false; portalSpawned = false; aotCharacter = ""; isPaused = false; customPaused = false; isGroundRunning = false;
+        dashBtn.classList.remove("cooldown"); dashBtn.classList.remove("aot-mode"); dashBtn.innerHTML = "";
+        gokuTimerContainer.style.display = "none"; document.getElementById("adminPauseBtn").innerText = "PAUSE GAME";
+        canvas.style.boxShadow = "0 0 40px rgba(255, 215, 0, 0.4)"; pipeWidth = 65;
+        chocolates.push({ x: canvas.width + 100, y: 300, collected: false });
+    }
+
+    function handleInput(e) { if (e.type !== "keydown") e.preventDefault(); if (gameRunning && !isPaused && !customPaused) bird.flap(); }
+    canvas.addEventListener("mousedown", handleInput); canvas.addEventListener("touchstart", handleInput, {passive: false});
+    window.addEventListener("keydown", (e) => { if (e.code === "Space") handleInput(e); });
+
+    dashBtn.addEventListener("mousedown", (e) => { 
+        e.stopPropagation(); 
+        if(isAOTMode && !dashBtn.classList.contains("cooldown")) { shootSpear(); }
+    });
+    dashBtn.addEventListener("touchstart", (e) => { 
+        e.stopPropagation(); 
+        if(isAOTMode && !dashBtn.classList.contains("cooldown")) { shootSpear(); }
+    }, {passive: false});
+
+    function animate() {
+        if (!gameRunning) { requestAnimationFrame(animate); return; }
+
+        if (!isPaused && !customPaused) {
+            drawBackground();
+            
+            if (isGoku) { 
+                gokuTimer -= speedMult; 
+                gokuTimerFill.style.width = Math.max(0, (gokuTimer / maxGokuTime) * 100) + "%";
+                if (gokuTimer <= 0) { isGoku = false; gokuTimerContainer.style.display = "none"; } 
+            }
+
+            bird.update(); updateGameObjects(); drawGameObjects(); bird.draw();
+            particles.forEach((p, i) => { p.update(); p.draw(); if (p.alpha <= 0) particles.splice(i, 1); });
+
+            frames += speedMult;
+        }
+        
+        requestAnimationFrame(animate);
+    }
+    animate();
+</script>
+</body>
+</html>
